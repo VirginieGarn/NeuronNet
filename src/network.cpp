@@ -1,5 +1,8 @@
 #include "network.h"
 #include "random.h"
+#include <map>
+#include <vector>
+
 
 void Network::resize(const size_t &n, double inhib) {
     size_t old = size();
@@ -61,6 +64,106 @@ size_t Network::random_connect(const double &mean_deg, const double &mean_streng
     }
     return num_links;
 }
+
+std::pair<size_t, double> Network::degree(const size_t& m) const
+{ 
+	
+	size_t i(0);
+	double sum(0.0);
+	
+	linkmap :: const_iterator it= links.lower_bound({m,0});
+	linkmap :: const_iterator itmax= links.lower_bound({m+1,0});
+	
+	for( ;it->first != itmax->first; ++it)
+	{ 
+		sum=sum+it->second;
+		i++;	
+		}
+	std::pair<size_t,double>deg (i,sum);
+	 
+	return deg;
+	
+}
+
+std::vector<std::pair<size_t, double> > Network:: neighbors(const size_t& m) const
+{ 
+	std::vector<std::pair<size_t, double> > vect;
+	
+	linkmap :: const_iterator it= links.lower_bound({m,0});
+	linkmap :: const_iterator itmax= links.lower_bound({m+1,0});
+	
+	for( ;it->first != itmax->first; ++it)
+	{
+	std::pair<size_t, double> neighbor (it->first.second, it->second);
+	vect.push_back(neighbor);
+	}
+	 
+	return vect;
+}
+
+ std::set<size_t>  Network::step(const std::vector<double>& thalamique)
+ {
+
+std::set<size_t> firingset;
+for (size_t i=0; i<neurons.size();++i)
+{
+		if(neurons[i].firing())
+		{
+			neurons[i].reset();
+			firingset.insert(i);
+		}
+		
+	}
+if(thalamique.size()==neurons.size())
+	{
+		std::vector<double> input_t;
+		for (size_t i=0; i<neurons.size();++i)
+		{
+			double input_ti=thalamique[i];
+			if(neurons[i].is_inhibitory())
+			{ 
+				input_ti=0.4*input_ti;
+			}
+			input_t.push_back(input_ti);
+		}
+	
+		double sumi;
+		double sume;
+		
+		std::vector<double> input_new_vec;
+		for (size_t i=0; i<neurons.size();++i)
+		{
+		std::vector<std::pair<size_t, double>> vect (neighbors(i));
+		sumi=0.0;
+		sume=0.0;
+			for (size_t j=0; j<vect.size();++j)
+			{ 
+			
+			size_t indice_voisin=vect[j].first;
+				if (neurons[indice_voisin].firing())
+				{ 
+					if (neurons[indice_voisin].is_inhibitory())
+					{
+					sumi= sumi+vect[j].second;
+					}
+					else
+					{
+					sume= sume+vect[j].second;
+					}
+				}
+			}
+		input_new_vec.push_back(input_t[i]+0.5*sume+sumi);
+		}
+		for (size_t i=0; i<neurons.size();++i)
+		{
+			neurons[i].input(input_new_vec[i]);
+			neurons[i].step();
+		}
+		
+		
+	}
+return firingset;
+ }
 
 std::vector<double> Network::potentials() const {
     std::vector<double> vals;

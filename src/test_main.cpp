@@ -97,6 +97,7 @@ TEST(networkTest, connect) {
     EXPECT_DOUBLE_EQ(.4*noise, net.neuron(inhib1).input());
 }
 
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
